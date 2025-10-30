@@ -9,4 +9,4 @@ const qualificationSchema = new mongoose.Schema({
   description: String,
 });
 
-export default mongoose.model("Qualification", qualificationSchema);
+export default mongoose.models.Qualification || mongoose.model("Qualification", qualificationSchema);
