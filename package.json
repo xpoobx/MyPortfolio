@@ -14,11 +14,12 @@
   },
   "scripts": {
     "dev": "concurrently 'vite' \"nodemon server.js\"",
-    "build": "vite build",
     "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "server": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "client": "cd client && npm run dev",
+    "build": "cd client && npm run build"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
