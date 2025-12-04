@@ -1,46 +1,62 @@
-import User from "../models/user.model.js";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { expressjwt } from "express-jwt";
-import config from "./../../config/config.js";
-const signin = async (req, res) => {
+import User from "../models/user.model.js";
+import config from "../config/config.js";
+
+// REGISTER
+export const registerUser = async (req, res) => {
   try {
-    let user = await User.findOne({ email: req.body.email });
-    if (!user) return res.status(401).json({ error: "User not found" });
-    if (!user.authenticate(req.body.password)) {
-      return res.status(401).send({ error: "Email and password don't match." });
-    }
-    const token = jwt.sign({ _id: user._id }, config.jwtSecret);
-    res.cookie("t", token, { expire: new Date() + 9999 });
-    return res.json({
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-      },
+    const { name, email, password, role } = req.body;
+    if (!name || !email || !password)
+      return res.status(400).json({ message: "All fields required" });
+
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: "User already exists" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: role || "user",
     });
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      config.jwtSecret,
+      { expiresIn: "1d" }
+    );
+
+    res.status(201).json({ message: "User registered", token, user });
   } catch (err) {
-    return res.status(401).json({ error: "Could not sign in" });
+    res.status(500).json({ error: err.message });
   }
 };
-const signout = (req, res) => {
-  res.clearCookie("t");
-  return res.status(200).json({
-    message: "signed out",
-  });
-};
-const requireSignin = expressjwt({
-  secret: config.jwtSecret,
-  algorithms: ["HS256"],
-  userProperty: "auth",
-});
-const hasAuthorization = (req, res, next) => {
-  const authorized = req.profile && req.auth && req.profile._id == req.auth._id;
-  if (!authorized) {
-    return res.status(403).json({
-      error: "User is not authorized",
-    });
+
+// LOGIN
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid password" });
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      config.jwtSecret,
+      { expiresIn: "1d" }
+    );
+
+    res.json({ message: "Login successful", token, role: user.role });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  next();
 };
-export default { signin, signout, requireSignin, hasAuthorization };
+
+// LOGOUT
+export const logoutUser = (req, res) => {
+  res.json({ message: "User logged out" });
+};

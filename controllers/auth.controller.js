@@ -2,12 +2,12 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 
-const JWT_SECRET = "yourSecretKey"; 
+const JWT_SECRET = process.env.JWT_SECRET || "yourSecretKey";
 
-//REGISTER 
+// REGISTER
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     if (!name || !email || !password)
       return res.status(400).json({ message: "All fields required" });
@@ -21,15 +21,27 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      role: role || "user", // default role
     });
 
-    res.status(201).json({ message: "User registered successfully", user });
+    // Generate token
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.status(201).json({
+      message: "User registered successfully",
+      token,
+      user,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-//LOGIN
+// LOGIN
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -39,17 +51,19 @@ export const loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid password" });
 
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
-    res.json({ message: "Login successful", token });
+    res.json({ message: "Login successful", token, role: user.role });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-//LOGOUT
+// LOGOUT
 export const logoutUser = (req, res) => {
   res.json({ message: "User logged out successfully" });
 };
