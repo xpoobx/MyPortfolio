@@ -21,10 +21,9 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: role || "user", // default role
+      role: role || "user",
     });
 
-    // Generate token
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       JWT_SECRET,

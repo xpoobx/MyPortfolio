@@ -39,9 +39,9 @@ app.use("/api/users", userRoutes);
 
 mongoose
   .connect(config.mongoUri)
-  .then(() => console.log("✅ Connected to MongoDB Atlas"))
+  .then(() => console.log("Connected to MongoDB Atlas"))
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("MongoDB connection error:", err);
     process.exit(1); 
   });
 
@@ -50,5 +50,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(config.port, () => {
-  console.info(`🚀 Server started on port ${config.port}`);
+  console.info(`Server started on port ${config.port}`);
 });
